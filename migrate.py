@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 import sys
+import tempfile
 
 import boto3
 import botocore.exceptions
@@ -101,9 +102,9 @@ def main():
             continue
 
         log.info(f'copying key={key}')
-        reader, writer = os.pipe()
-        src_s3.download_fileobj(src_bucket, key, os.fdopen(writer, 'wb'))
-        dest_s3.upload_fileobj(os.fdopen(reader, 'rb'), dest_bucket, key)
+        with tempfile.NamedTemporaryFile() as temp:
+            src_s3.download_fileobj(src_bucket, key, temp)
+            dest_s3.upload_fileobj(temp, dest_bucket, key)
 
 if __name__ == '__main__':
     main()

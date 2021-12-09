@@ -55,3 +55,18 @@ deployment when pipenv is not available. Update the requirements.txt from
 pipenv:
 
     $ pipenv lock -r > requirements.txt
+
+
+## Cloud.gov
+
+You can run this in cloud.gov...
+
+    $ cf create-service s3 basic-public dashboard-s3-public
+
+Push the application.
+
+    $ cf push -f manifest.yml s3-migrator
+
+Run the script.
+
+    $ cf run-task s3-migrator --command "python migrate.py --src-service-name dashboard-s3 --dest-service-name dashboard-s3-public" --name dashboard-s3-public --wait

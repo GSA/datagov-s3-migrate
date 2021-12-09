@@ -1,0 +1,11 @@
+---
+applications:
+  - name: s3-migrator
+    instances: 0
+    command: sleep infinity
+    memory: 64M
+    no-route: true
+    no-start: true
+    services:
+      - dashboard-s3
+      - dashboard-s3-public

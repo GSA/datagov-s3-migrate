@@ -6,6 +6,7 @@ import tempfile
 
 import boto3
 import botocore.exceptions
+from vcap_services import load_from_vcap_services
 
 logging.basicConfig(stream=sys.stdout, level=logging.ERROR)
 log = logging.getLogger('s3migrate')
@@ -53,6 +54,8 @@ def list_objects(s3, bucket, prefix):
 def main():
     parser = argparse.ArgumentParser(description='S3 migration utility.')
     parser.add_argument('--use-ec2', action='store_true', help='Read source credentials from EC2 metadata.')
+    parser.add_argument('--src-service-name', action='store', help='Name of the cloud.gov s3 service to copy from.')
+    parser.add_argument('--dest-service-name', action='store', help='Name of the cloud.gov s3 service to copy to.')
     parser.add_argument('--clear', action='store_true', help='Clear the destination bucket before copying objects.')
     parser.add_argument('--debug', action='store_true', help='Use debug logging.')
     args = parser.parse_args()
@@ -62,26 +65,41 @@ def main():
     if args.debug:
         log.setLevel(logging.DEBUG)
 
-    src_bucket = os.getenv('SRC_BUCKET_NAME')
-    src_prefix = os.getenv('SRC_PREFIX')
-    src_region = os.getenv('SRC_REGION')
+    if args.src_service_name:
+        src_service = load_from_vcap_services('s3', None, args.src_service_name)
+        src_access_key_id = src_service.get('access_key_id')
+        src_secret_access_key = src_service.get('secret_access_key')
+        src_bucket = src_service.get('bucket')
+        src_prefix = ''
+        src_region = src_service.get('region')
+    else:
+        src_access_key_id = os.getenv('SRC_ACCESS_KEY_ID')
+        src_secret_access_key = os.getenv('SRC_SECRET_ACCESS_KEY')
+        src_bucket = os.getenv('SRC_BUCKET_NAME')
+        src_prefix = os.getenv('SRC_PREFIX')
+        src_region = os.getenv('SRC_REGION')
 
     if args.use_ec2:
         src_s3 = boto3.client('s3')
     else:
-        src_access_key_id = os.getenv('SRC_ACCESS_KEY_ID')
-        src_secret_access_key = os.getenv('SRC_SECRET_ACCESS_KEY')
-
         src_s3 = boto3.client('s3',
             region_name=src_region,
             aws_access_key_id=src_access_key_id,
             aws_secret_access_key=src_secret_access_key,
         )
 
-    dest_bucket = os.getenv('DEST_BUCKET_NAME')
-    dest_access_key_id = os.getenv('DEST_ACCESS_KEY_ID')
-    dest_secret_access_key = os.getenv('DEST_SECRET_ACCESS_KEY')
-    dest_region = os.getenv('DEST_REGION')
+    if args.dest_service_name:
+        dest_service = load_from_vcap_services('s3', None, args.dest_service_name)
+        dest_access_key_id = dest_service.get('access_key_id')
+        dest_secret_access_key = dest_service.get('secret_access_key')
+        dest_bucket = dest_service.get('bucket')
+        dest_prefix = ''
+        dest_region = dest_service.get('region')
+    else:
+        dest_bucket = os.getenv('DEST_BUCKET_NAME')
+        dest_access_key_id = os.getenv('DEST_ACCESS_KEY_ID')
+        dest_secret_access_key = os.getenv('DEST_SECRET_ACCESS_KEY')
+        dest_region = os.getenv('DEST_REGION')
 
     dest_s3 = boto3.client('s3',
         region_name=dest_region,

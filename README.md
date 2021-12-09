@@ -46,3 +46,12 @@ Run these steps on dashboardweb1p in a tmux environment.
     $ source $env_file
     $ source venv/bin/activate
     $ time python migrate.py --use-ec2
+
+
+## requirements.txt
+
+With Pipfile/pipenv, the requirements.txt isn't really necessary but simplifies
+deployment when pipenv is not available. Update the requirements.txt from
+pipenv:
+
+    $ pipenv lock -r > requirements.txt

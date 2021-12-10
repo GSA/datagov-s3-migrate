@@ -9,3 +9,4 @@ applications:
     services:
       - dashboard-s3
       - dashboard-s3-public
+      - fcs-lifeboat

@@ -59,14 +59,12 @@ pipenv:
 
 ## Cloud.gov
 
-You can run this in cloud.gov...
-
-    $ cf create-service s3 basic-public dashboard-s3-public
+You can run this in cloud.gov. Add the s3 service to the manifest.yml.
 
 Push the application.
 
     $ cf push -f manifest.yml s3-migrator
 
-Run the script.
+Run the migrate task.
 
-    $ cf run-task s3-migrator --command "python migrate.py --prefix datagov/dashboard/ --src-service-name dashboard-s3 --dest-service-name dashboard-s3-public" --name dashboard-s3-public --wait
+    $ cf run-task s3-migrator --command "python migrate.py --prefix datagov/dashboard/ --src-service-name fcs-lifeboat --dest-service-name dashboard-s3" --name dashboard-s3 --wait

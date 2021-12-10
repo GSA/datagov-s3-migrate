@@ -122,6 +122,7 @@ def main():
         log.info(f'copying key={key}')
         with tempfile.NamedTemporaryFile() as temp:
             src_s3.download_fileobj(src_bucket, key, temp)
+            temp.seek(0)
             dest_s3.upload_fileobj(temp, dest_bucket, key)
 
 if __name__ == '__main__':

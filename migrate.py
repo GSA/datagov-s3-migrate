@@ -58,6 +58,7 @@ def main():
     parser.add_argument('--dest-service-name', action='store', help='Name of the cloud.gov s3 service to copy to.')
     parser.add_argument('--clear', action='store_true', help='Clear the destination bucket before copying objects.')
     parser.add_argument('--debug', action='store_true', help='Use debug logging.')
+    parser.add_argument('--prefix', action='store', default='', help='Source S3 prefix to use.')
     args = parser.parse_args()
 
 
@@ -70,13 +71,13 @@ def main():
         src_access_key_id = src_service.get('access_key_id')
         src_secret_access_key = src_service.get('secret_access_key')
         src_bucket = src_service.get('bucket')
-        src_prefix = ''
+        src_prefix = args.prefix
         src_region = src_service.get('region')
     else:
         src_access_key_id = os.getenv('SRC_ACCESS_KEY_ID')
         src_secret_access_key = os.getenv('SRC_SECRET_ACCESS_KEY')
         src_bucket = os.getenv('SRC_BUCKET_NAME')
-        src_prefix = os.getenv('SRC_PREFIX')
+        src_prefix = args.prefix or os.getenv('SRC_PREFIX')
         src_region = os.getenv('SRC_REGION')
 
     if args.use_ec2:

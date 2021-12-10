@@ -69,4 +69,4 @@ Push the application.
 
 Run the script.
 
-    $ cf run-task s3-migrator --command "python migrate.py --src-service-name dashboard-s3 --dest-service-name dashboard-s3-public" --name dashboard-s3-public --wait
+    $ cf run-task s3-migrator --command "python migrate.py --prefix datagov/dashboard/ --src-service-name dashboard-s3 --dest-service-name dashboard-s3-public" --name dashboard-s3-public --wait

@@ -5,18 +5,18 @@ account.
 
 ## Usage
 
-1. Download and unzip the gist
+1. Clone this repo
 1. Setup python virtualenv
 1. Populate the environment
 1. Run the script
 
-### Download gist
+### Clone this repo
 
-Download and unzip this gist on dashboardweb1p.
+Clone this repo to wordpress1p.
 
 ### Setup python virtualenv
 
-Run these on on dashboardweb1p.
+Run these on on wordpress1p.
 
 You may need to install python3-venv with apt-get.
 
@@ -26,24 +26,24 @@ You may need to install python3-venv with apt-get.
 
 ### Populate the environment
 
-env.sample contains the structure
+env.sample contains the environment template.
 
-    $ env_file=$(mktemp)
-    $ vi $env_file
+    $ cp env.sample .env
+    $ vi .env
 
-SRC credentials are the FCS environment. Bucket name is found in /var/www/dashboard/current/.env.
+SRC credentials are the FCS environment. Bucket name is found in /var/www/datagov/current/.env.
 
 DEST variables come from the cloud.gov service-key, these are run on your local
 development environment.
 
     $ cf target -s $space
-    $ cf service-key dashboard-s3 fcs-migration
+    $ cf service-key fcs-lifeboat fcs-migration
 
 ### Run the script
 
-Run these steps on dashboardweb1p in a tmux environment.
+Run these steps on wordpress1p in a tmux environment.
 
-    $ source $env_file
+    $ source .env
     $ source venv/bin/activate
     $ time python migrate.py --use-ec2
 

@@ -1,4 +1,6 @@
+#!/usr/bin/env python
 import argparse
+import asyncio
 import logging
 import os
 import sys
@@ -50,13 +52,13 @@ def list_objects(s3, bucket, prefix):
             break
 
 
-
-def main():
+async def main():
     parser = argparse.ArgumentParser(description='S3 migration utility.')
     parser.add_argument('--use-ec2', action='store_true', help='Read source credentials from EC2 metadata.')
     parser.add_argument('--src-service-name', action='store', help='Name of the cloud.gov s3 service to copy from.')
     parser.add_argument('--dest-service-name', action='store', help='Name of the cloud.gov s3 service to copy to.')
     parser.add_argument('--clear', action='store_true', help='Clear the destination bucket before copying objects.')
+    parser.add_argument('--concurrency', type=int, default=4, help='Number of copy workers to run concurrently.')
     parser.add_argument('--debug', action='store_true', help='Use debug logging.')
     parser.add_argument('--prefix', action='store', default='', help='Source S3 prefix to use.')
     args = parser.parse_args()
@@ -113,18 +115,53 @@ def main():
         log.info(f'clearing destination bucket={dest_bucket}')
         clear_bucket(dest_s3, dest_bucket)
 
+    async def worker(worker_num, queue):
+        while True:
+            # get a "work item" out of the queue.
+            obj = await queue.get()
+
+            key = obj.get('Key')
+            if key_exists(dest_s3, dest_bucket, key):
+                log.debug(f'worker={worker_num} skipping key={key} already exists on destination')
+                continue
+
+            log.info(f'worker={worker_num} copying key={key}')
+            with tempfile.NamedTemporaryFile() as temp:
+                # TODO use a pipe with asyncio to prevent serial download + upload
+                src_s3.download_fileobj(src_bucket, key, temp)
+                temp.seek(0)
+                dest_s3.upload_fileobj(temp, dest_bucket, key)
+
+            # Notify the queue that the "work item" has been processed.
+            queue.task_done()
+
+    # setup workers
+    tasks = []
+    queue = asyncio.Queue(maxsize=100)  # We put a maxsize to prevent queing 90k objects in memory
+    log.debug(f'starting concurrency={args.concurrency} copy tasks...')
+    for i in range(args.concurrency):
+        task = asyncio.create_task(worker(i, queue))
+        tasks.append(task)
+
     # iterate over each object
     for obj in list_objects(src_s3, src_bucket, src_prefix):
-        key = obj.get('Key')
-        if key_exists(dest_s3, dest_bucket, key):
-            log.debug(f'skipping key={key} already exists on destination')
-            continue
+        await queue.put(obj)  # This will wait if the queue is full, preventing large queuing in memory
 
-        log.info(f'copying key={key}')
-        with tempfile.NamedTemporaryFile() as temp:
-            src_s3.download_fileobj(src_bucket, key, temp)
-            temp.seek(0)
-            dest_s3.upload_fileobj(temp, dest_bucket, key)
+    # wait for queue to drain
+    await queue.join()
+
+    log.info('done processing queue')
+
+    # Cancel our worker tasks who are waiting on an empty queue
+    for task in tasks:
+        task.cancel()
+
+    log.info('cancelling tasks...')
+    # Wait until all worker tasks are cancelled.
+    await asyncio.gather(*tasks, return_exceptions=True)
+    log.info('done')
+
+
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
